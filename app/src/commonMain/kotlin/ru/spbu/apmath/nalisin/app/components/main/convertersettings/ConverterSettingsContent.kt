@@ -1,6 +1,8 @@
 package ru.spbu.apmath.nalisin.app.components.main.convertersettings
 
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,7 +17,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.DefaultComponentContext
@@ -38,6 +39,7 @@ fun ConverterSettingsContent(
                 .clickable { isExpanded = !isExpanded }
                 .padding(horizontal = 8.dp, vertical = 16.dp)
                 .fillMaxWidth()
+                .animateContentSize(animationSpec = tween(durationMillis = 500, easing = LinearOutSlowInEasing))
         ) {
             Text(
                 modifier = Modifier.fillMaxWidth(),
@@ -45,7 +47,7 @@ fun ConverterSettingsContent(
                 style = MaterialTheme.typography.titleMedium,
                 textAlign = TextAlign.Center,
             )
-            AnimatedVisibility(visible = isExpanded) {
+            if (isExpanded) {
                 Column {
                     ConverterSettingsItem(
                         uiModel = ConverterSettingsItemUiModel(name = "BPM"),
