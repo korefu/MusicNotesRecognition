@@ -24,8 +24,8 @@ actual class VoiceRecorderImpl(
 
     private val encoding = AudioFormat.ENCODING_PCM_16BIT
     private val channelConfig = AudioFormat.CHANNEL_IN_MONO
-    val sampleRate = 44100
-    private val bufferSize = AudioRecord.getMinBufferSize(sampleRate, channelConfig, encoding)*2
+    private val sampleRate = 44100
+    private val bufferSize = AudioRecord.getMinBufferSize(sampleRate, channelConfig, encoding) * 2
     private val format = AudioFormat.Builder()
         .setSampleRate(sampleRate)
         .setChannelMask(channelConfig)
@@ -36,9 +36,12 @@ actual class VoiceRecorderImpl(
     private var recordingJob: Job? = null
 
     override suspend fun getAudio(): MusicFile {
-        stop()
+        pause()
+        val audioData = recordingBuffer.toByteArray()
+        reset()
+
         return MusicFile(
-            audioData = recordingBuffer.toByteArray(),
+            audioData = audioData,
             format = format.toUniversalAudioFormat(),
         )
     }
@@ -72,15 +75,19 @@ actual class VoiceRecorderImpl(
 
     override fun stop() {
         pause()
+        reset()
+    }
+
+    private fun reset() {
         audioRecord?.release()
         audioRecord = null
+        recordingBuffer.reset()
     }
 
     override suspend fun save(outputPath: String): MusicFile = withContext(ioContext) {
         val musicFile = getAudio()
         val wavData = musicFile.audioData
         FileOutputStream(outputPath).use { it.write(wavData) }
-        recordingBuffer.reset()
         musicFile
     }
 

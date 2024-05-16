@@ -7,7 +7,7 @@ import ru.spbu.apmath.nalisin.common_entities.UniversalAudioFormat
 fun AudioFormat.toUniversalAudioFormat(): UniversalAudioFormat {
     return UniversalAudioFormat(
         sampleRate = this.sampleRate.toFloat(),
-        sampleSizeInBits = getBytesPerSample(this.encoding) * this.channelCount,
+        sampleSizeInBits = getBitsPerSample(this.encoding) * this.channelCount,
         channels = this.channelCount,
         signed = getSignedEncodings.contains(this.encoding),
         bigEndian = false,
@@ -46,12 +46,12 @@ fun UniversalAudioFormat.toJvmAudioFormat(): AudioFormat {
         .build()
 }
 
-private fun getBytesPerSample(audioFormat: Int): Int {
+private fun getBitsPerSample(audioFormat: Int): Int {
     return when (audioFormat) {
-        AudioFormat.ENCODING_PCM_8BIT -> 1
-        AudioFormat.ENCODING_PCM_16BIT, AudioFormat.ENCODING_IEC61937, AudioFormat.ENCODING_DEFAULT -> 2
-        AudioFormat.ENCODING_PCM_24BIT_PACKED -> 3
-        AudioFormat.ENCODING_PCM_FLOAT, AudioFormat.ENCODING_PCM_32BIT -> 4
+        AudioFormat.ENCODING_PCM_8BIT -> 8
+        AudioFormat.ENCODING_PCM_16BIT, AudioFormat.ENCODING_IEC61937, AudioFormat.ENCODING_DEFAULT -> 16
+        AudioFormat.ENCODING_PCM_24BIT_PACKED -> 24
+        AudioFormat.ENCODING_PCM_FLOAT, AudioFormat.ENCODING_PCM_32BIT -> 32
         AudioFormat.ENCODING_INVALID -> throw IllegalArgumentException("Bad audio format $audioFormat")
         else -> throw IllegalArgumentException("Bad audio format $audioFormat")
     }

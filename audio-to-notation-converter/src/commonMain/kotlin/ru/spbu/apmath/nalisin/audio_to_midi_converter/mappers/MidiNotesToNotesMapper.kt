@@ -43,7 +43,7 @@ object MidiNotesToNotesMapper {
     }
 
     private fun List<MidiNote>.dropFirstPause(): List<MidiNote> {
-        return if (this.first() is MidiNote.Rest) this.drop(1) else this
+        return if (this.firstOrNull() is MidiNote.Rest) this.drop(1) else this
     }
 
     private fun List<MidiNote>.adjustNoteDuration(deviation: Double = 0.0): List<MidiNote> {
