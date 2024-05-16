@@ -14,6 +14,9 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "0.5.0"
+}
 
 dependencyResolutionManagement {
     repositories {
@@ -36,11 +39,12 @@ dependencyResolutionManagement {
     }
 }
 
-include(":composeApp")
+include(":app")
 include(":common-entities")
 include(":frequency-recognition-api")
 include(":audio-splitter")
 include(":frequency-recognition-fft")
 include(":common-utils")
-include(":audio-to-midi-converter")
+include(":audio-to-notation-converter")
 include(":musicxml-writer")
+include("loudness-analyzer")

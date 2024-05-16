@@ -10,7 +10,7 @@ object MedianFilter {
         // Если список слишком мал для применения фильтра
         if (frequencies.size < windowSize || windowSize < 3) return frequencies
 
-        val newFrequencies = ArrayList<MidiNote>()
+        val newFrequencies = mutableListOf<MidiNote>()
 
         for (i in frequencies.indices) {
             val windowFrequencies = frequencies.subList(

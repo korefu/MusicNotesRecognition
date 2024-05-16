@@ -29,7 +29,7 @@ kotlin {
             implementation(project(":common-entities"))
             implementation(project(":common-utils"))
             implementation(project(":audio-splitter"))
-            implementation(project(":audio-to-midi-converter"))
+            implementation(project(":audio-to-notation-converter"))
             implementation(project(":frequency-recognition-fft"))
             implementation(project(":musicxml-writer"))
 
