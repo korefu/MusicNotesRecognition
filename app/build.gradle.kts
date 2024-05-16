@@ -31,6 +31,7 @@ kotlin {
             implementation(project(":audio-splitter"))
             implementation(project(":audio-to-notation-converter"))
             implementation(project(":frequency-recognition-fft"))
+            implementation(project(":loudness-analyzer"))
             implementation(project(":musicxml-writer"))
 
             implementation(compose.runtime)

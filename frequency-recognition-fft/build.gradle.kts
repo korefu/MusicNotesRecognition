@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.ksp)
 }
 
 kotlin {
@@ -20,8 +19,4 @@ kotlin {
             implementation(libs.kotlin.test)
         }
     }
-}
-
-dependencies {
-    kspCommonMainMetadata(libs.kotlinInject.compiler)
 }

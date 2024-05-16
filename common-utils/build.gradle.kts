@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
-    alias(libs.plugins.ksp)
 }
 
 kotlin {
@@ -35,9 +34,4 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-}
-
-dependencies {
-    add("kspAndroid", libs.kotlinInject.compiler)
-    add("kspDesktop", libs.kotlinInject.compiler)
 }

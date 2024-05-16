@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
-    alias(libs.plugins.ksp)
 }
 
 kotlin {
@@ -22,6 +21,7 @@ kotlin {
             implementation(project(":common-utils"))
             implementation(project(":audio-splitter"))
             implementation(project(":frequency-recognition-fft"))
+            implementation(project(":loudness-analyzer"))
             implementation(project(":musicxml-writer"))
             implementation(libs.kotlinInject.runtime)
         }
@@ -49,8 +49,4 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-}
-
-dependencies {
-    kspCommonMainMetadata(libs.kotlinInject.compiler)
 }
