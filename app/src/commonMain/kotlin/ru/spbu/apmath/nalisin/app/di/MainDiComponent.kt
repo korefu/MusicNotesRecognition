@@ -22,6 +22,8 @@ import ru.spbu.apmath.nalisin.audio_to_midi_converter.MusicXmlConverterImpl
 import ru.spbu.apmath.nalisin.common_utils.GetAudioFormatUseCase
 import ru.spbu.apmath.nalisin.common_utils.GetAudioFormatUseCaseImpl
 import ru.spbu.apmath.nalisin.frequency_recognition_api.FrequencyRecognizer
+import ru.spbu.apmath.nalisin.loudness_analyzer.LoudnessAnalyzer
+import ru.spbu.apmath.nalisin.loudness_analyzer.LoudnessAnalyzerImpl
 
 @Component
 abstract class MainDiComponent(@get:Provides protected val componentContext: ComponentContext) {
@@ -66,6 +68,9 @@ abstract class MainDiComponent(@get:Provides protected val componentContext: Com
         @Provides get() = this
 
     protected val MidiConverterImpl.bind: MidiConverter
+        @Provides get() = this
+
+    protected val LoudnessAnalyzerImpl.bind : LoudnessAnalyzer
         @Provides get() = this
 }
 

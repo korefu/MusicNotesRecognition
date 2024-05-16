@@ -10,6 +10,7 @@ import ru.spbu.apmath.nalisin.common_entities.MusicFile
 import ru.spbu.apmath.nalisin.common_entities.TimeFrequency
 import ru.spbu.apmath.nalisin.common_utils.GetAudioFormatUseCase
 import ru.spbu.apmath.nalisin.frequency_recognition_api.FrequencyRecognizer
+import ru.spbu.apmath.nalisin.loudness_analyzer.LoudnessAnalyzer
 import java.io.File
 import kotlin.math.abs
 import kotlin.math.log2
@@ -24,6 +25,7 @@ class MidiNotesComposerImpl(
     private val getAudioFormatUseCase: GetAudioFormatUseCase,
     private val audioSplitter: AudioSplitter,
     private val frequencyRecognizer: FrequencyRecognizer,
+    private val loudnessAnalyzer: LoudnessAnalyzer,
 ) : MidiNotesComposer {
 
     override fun composeMidiNotes(audioFilePath: String, settings: Settings): List<MidiNote> {
@@ -52,17 +54,23 @@ class MidiNotesComposerImpl(
         )
         val frequencies = audioFragments
             .mapIndexed { index, audioFragmentData ->
-                TimeFrequency(
-                    time = settings.fragmentDurationInMillis * index,
-                    frequency = audioFragmentData.let {
-                        frequencyRecognizer.recognizeFrequency(
-                            musicFile = MusicFile(
-                                audioData = audioFragmentData,
-                                format = musicFile.format,
+                val loudnessInDb = loudnessAnalyzer.getAverageLoudness(MusicFile(audioFragmentData, musicFile.format))
+                val time = settings.fragmentDurationInMillis * index
+                if (loudnessInDb > LOUDNESS_THRESHOLD) {
+                    TimeFrequency(
+                        time = time,
+                        frequency = audioFragmentData.let {
+                            frequencyRecognizer.recognizeFrequency(
+                                musicFile = MusicFile(
+                                    audioData = audioFragmentData,
+                                    format = musicFile.format,
+                                )
                             )
-                        )
-                    }
-                )
+                        }
+                    )
+                } else {
+                    TimeFrequency(time = time, frequency = null)
+                }
             }
         return frequencies
     }
@@ -155,5 +163,6 @@ class MidiNotesComposerImpl(
 
     private companion object {
         private const val QUARTER_TONE_DURATION = 0.25
+        private const val LOUDNESS_THRESHOLD = -35.0
     }
 }
