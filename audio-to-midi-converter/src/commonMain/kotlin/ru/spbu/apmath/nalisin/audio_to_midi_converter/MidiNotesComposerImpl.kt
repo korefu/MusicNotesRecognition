@@ -6,8 +6,8 @@ import ru.spbu.apmath.nalisin.audio_to_midi_converter.utils.MedianFilter.applyMe
 import ru.spbu.apmath.nalisin.audio_to_midi_converter.utils.NotesMerger.mergeNotes
 import ru.spbu.apmath.nalisin.audio_to_midi_converter.utils.NotesSmoother.postProcessNotes
 import ru.spbu.apmath.nalisin.common_entities.MidiNote
+import ru.spbu.apmath.nalisin.common_entities.MusicFile
 import ru.spbu.apmath.nalisin.common_entities.TimeFrequency
-import ru.spbu.apmath.nalisin.common_entities.UniversalAudioFormat
 import ru.spbu.apmath.nalisin.common_utils.GetAudioFormatUseCase
 import ru.spbu.apmath.nalisin.frequency_recognition_api.FrequencyRecognizer
 import java.io.File
@@ -27,28 +27,27 @@ class MidiNotesComposerImpl(
 ) : MidiNotesComposer {
 
     override fun composeMidiNotes(audioFilePath: String, settings: Settings): List<MidiNote> {
-        val audioData = File(audioFilePath).readBytes()
-        val audioFormat = getAudioFormatUseCase(audioFilePath)
-        return composeMidiNotes(audioData = audioData, audioFormat = audioFormat, settings = settings)
+        val musicFile = MusicFile(
+            audioData = File(audioFilePath).readBytes(),
+            format = getAudioFormatUseCase(audioFilePath),
+        )
+        return composeMidiNotes(musicFile = musicFile, settings = settings)
     }
 
     override fun composeMidiNotes(
-        audioData: ByteArray,
-        audioFormat: UniversalAudioFormat,
+        musicFile: MusicFile,
         settings: Settings
     ): List<MidiNote> {
-        val frequencies = getFrequencies(audioData = audioData, audioFormat = audioFormat, settings = settings)
+        val frequencies = getFrequencies(musicFile = musicFile, settings = settings)
         return composeMidiNotes(frequencies = frequencies, settings = settings)
     }
 
     private fun getFrequencies(
-        audioData: ByteArray,
-        audioFormat: UniversalAudioFormat,
+        musicFile: MusicFile,
         settings: Settings
     ): List<TimeFrequency> {
         val audioFragments = audioSplitter.splitAudio(
-            audioData = audioData,
-            audioFormat = audioFormat,
+            musicFile = musicFile,
             durationInMillis = settings.fragmentDurationInMillis,
         )
         val frequencies = audioFragments
@@ -57,8 +56,10 @@ class MidiNotesComposerImpl(
                     time = settings.fragmentDurationInMillis * index,
                     frequency = audioFragmentData.let {
                         frequencyRecognizer.recognizeFrequency(
-                            audioData = audioFragmentData,
-                            audioFormat = audioFormat
+                            musicFile = MusicFile(
+                                audioData = audioFragmentData,
+                                format = musicFile.format,
+                            )
                         )
                     }
                 )

@@ -6,9 +6,9 @@ import be.tarsos.dsp.io.UniversalAudioInputStream
 import be.tarsos.dsp.pitch.PitchDetectionResult
 import be.tarsos.dsp.pitch.PitchProcessor
 import me.tatarka.inject.annotations.Inject
-import ru.spbu.apmath.nalisin.common_entities.UniversalAudioFormat
-import ru.spbu.apmath.nalisin.common_utils.toTarsosDspAudioFormat
+import ru.spbu.apmath.nalisin.common_entities.MusicFile
 import ru.spbu.apmath.nalisin.common_utils.GetAudioFormatUseCase
+import ru.spbu.apmath.nalisin.common_utils.toTarsosDspAudioFormat
 import ru.spbu.apmath.nalisin.frequency_recognition_api.FrequencyRecognizer
 import java.io.ByteArrayInputStream
 import java.io.File
@@ -21,18 +21,20 @@ class FFTFrequencyRecognizer(
     override fun recognizeFrequency(audioFilePath: String): Double? {
         val file = File(audioFilePath)
         return recognizeFrequency(
-            audioData = file.readBytes(),
-            audioFormat = getAudioFormatUseCase(audioFilePath)
+            musicFile = MusicFile(
+                audioData = file.readBytes(),
+                format = getAudioFormatUseCase(audioFilePath),
+            )
         )
     }
 
-    override fun recognizeFrequency(
-        audioData: ByteArray,
-        audioFormat: UniversalAudioFormat,
-    ): Double? {
+    override fun recognizeFrequency(musicFile: MusicFile): Double? {
         return try {
             val inputStream =
-                UniversalAudioInputStream(ByteArrayInputStream(audioData), audioFormat.toTarsosDspAudioFormat())
+                UniversalAudioInputStream(
+                    ByteArrayInputStream(musicFile.audioData),
+                    musicFile.format.toTarsosDspAudioFormat(),
+                )
             val dispatcher = AudioDispatcher(inputStream, BUFFER_SIZE, OVERLAP)
 
             var detectedFrequency: Double? = null

@@ -182,8 +182,7 @@ class MainComponentImpl(
             _converterState.update { ConverterState.Processing }
             scope.launch(ioContext) {
                 val midiNotes = midiNotesComposer.composeMidiNotes(
-                    audioData = file.audioData,
-                    audioFormat = file.format,
+                    musicFile = file,
                     settings = converterSettings.value.state.value.settings,
                 )
                 _converterState.update { ConverterState.MidiNotesReceived.Init(midiNotes) }

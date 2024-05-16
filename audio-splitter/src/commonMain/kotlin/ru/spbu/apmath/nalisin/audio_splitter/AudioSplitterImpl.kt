@@ -1,7 +1,7 @@
 package ru.spbu.apmath.nalisin.audio_splitter
 
 import me.tatarka.inject.annotations.Inject
-import ru.spbu.apmath.nalisin.common_entities.UniversalAudioFormat
+import ru.spbu.apmath.nalisin.common_entities.MusicFile
 import ru.spbu.apmath.nalisin.common_utils.GetAudioFormatUseCase
 import java.io.File
 
@@ -11,13 +11,13 @@ class AudioSplitterImpl(
 ) : AudioSplitter {
 
     override fun splitAudio(
-        audioData: ByteArray,
-        audioFormat: UniversalAudioFormat,
+        musicFile: MusicFile,
         durationInMillis: Long,
     ): List<ByteArray> {
         // Расчет количества байтов в миллисекунду
-        val bytesPerMillisecond =
-            (audioFormat.sampleRate * audioFormat.sampleSizeInBits * audioFormat.channels / 8 / 1000).toLong()
+        val bytesPerMillisecond = with(musicFile.format) {
+            (sampleRate * sampleSizeInBits * channels / 8 / 1000).toLong()
+        }
 
         // Расчет общего количества байтов в одном интервале
         val intervalByteSize = (durationInMillis * bytesPerMillisecond).toInt()
@@ -27,11 +27,11 @@ class AudioSplitterImpl(
 
         var start = 0
         // Оставшееся количество байт для обработки
-        var remainingBytes = audioData.size
+        var remainingBytes = musicFile.audioData.size
         while (remainingBytes > 0) {
             // Размер текущего фрагмента зависит от оставшихся байт
             val end = start + intervalByteSize.coerceAtMost(remainingBytes)
-            audioIntervals.add(audioData.copyOfRange(start, end))
+            audioIntervals.add(musicFile.audioData.copyOfRange(start, end))
             // Обновление начального индекса и оставшегося количества байт
             start = end
             remainingBytes -= intervalByteSize
@@ -44,6 +44,12 @@ class AudioSplitterImpl(
         filePath: String,
         durationInMillis: Long,
     ): List<ByteArray> {
-        return splitAudio(File(filePath).readBytes(), getAudioFormatUseCase(filePath), durationInMillis)
+        return splitAudio(
+            musicFile = MusicFile(
+                audioData = File(filePath).readBytes(),
+                format = getAudioFormatUseCase(filePath)
+            ),
+            durationInMillis = durationInMillis,
+        )
     }
 }
