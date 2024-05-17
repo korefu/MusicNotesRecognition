@@ -5,6 +5,8 @@ import ru.spbu.apmath.nalisin.audio_splitter.AudioSplitter
 import ru.spbu.apmath.nalisin.audio_to_midi_converter.utils.MedianFilter.applyMedianFilter
 import ru.spbu.apmath.nalisin.audio_to_midi_converter.utils.NotesMerger.mergeNotes
 import ru.spbu.apmath.nalisin.audio_to_midi_converter.utils.NotesSmoother.postProcessNotes
+import ru.spbu.apmath.nalisin.audio_to_midi_converter.utils.parallelMap
+import ru.spbu.apmath.nalisin.audio_to_midi_converter.utils.parallelMapIndexed
 import ru.spbu.apmath.nalisin.common_entities.MidiNote
 import ru.spbu.apmath.nalisin.common_entities.MusicFile
 import ru.spbu.apmath.nalisin.common_entities.TimeFrequency
@@ -28,7 +30,7 @@ class MidiNotesComposerImpl(
     private val loudnessAnalyzer: LoudnessAnalyzer,
 ) : MidiNotesComposer {
 
-    override fun composeMidiNotes(audioFilePath: String, settings: Settings): List<MidiNote> {
+    override suspend fun composeMidiNotes(audioFilePath: String, settings: Settings): List<MidiNote> {
         val musicFile = MusicFile(
             audioData = File(audioFilePath).readBytes(),
             format = getAudioFormatUseCase(audioFilePath),
@@ -36,7 +38,7 @@ class MidiNotesComposerImpl(
         return composeMidiNotes(musicFile = musicFile, settings = settings)
     }
 
-    override fun composeMidiNotes(
+    override suspend fun composeMidiNotes(
         musicFile: MusicFile,
         settings: Settings
     ): List<MidiNote> {
@@ -44,7 +46,7 @@ class MidiNotesComposerImpl(
         return composeMidiNotes(frequencies = frequencies, settings = settings)
     }
 
-    private fun getFrequencies(
+    private suspend fun getFrequencies(
         musicFile: MusicFile,
         settings: Settings
     ): List<TimeFrequency> {
@@ -53,33 +55,34 @@ class MidiNotesComposerImpl(
             durationInMillis = settings.fragmentDurationInMillis,
         )
         val frequencies = audioFragments
-            .mapIndexed { index, audioFragmentData ->
-                val loudnessInDb = loudnessAnalyzer.getAverageLoudness(MusicFile(audioFragmentData, musicFile.format))
-                val time = settings.fragmentDurationInMillis * index
-                if (loudnessInDb > LOUDNESS_THRESHOLD) {
-                    TimeFrequency(
-                        time = time,
-                        frequency = audioFragmentData.let {
-                            frequencyRecognizer.recognizeFrequency(
-                                musicFile = MusicFile(
-                                    audioData = audioFragmentData,
-                                    format = musicFile.format,
+                .parallelMapIndexed { index, audioFragmentData ->
+                    val loudnessInDb =
+                        loudnessAnalyzer.getAverageLoudness(MusicFile(audioFragmentData, musicFile.format))
+                    val time = settings.fragmentDurationInMillis * index
+                    if (loudnessInDb > LOUDNESS_THRESHOLD) {
+                        TimeFrequency(
+                            time = time,
+                            frequency = audioFragmentData.let {
+                                frequencyRecognizer.recognizeFrequency(
+                                    musicFile = MusicFile(
+                                        audioData = audioFragmentData,
+                                        format = musicFile.format,
+                                    )
                                 )
-                            )
-                        }
-                    )
-                } else {
-                    TimeFrequency(time = time, frequency = null)
+                            }
+                        )
+                    } else {
+                        TimeFrequency(time = time, frequency = null)
+                    }
                 }
-            }
         return frequencies
     }
 
-    override fun composeMidiNotes(frequencies: List<TimeFrequency>, settings: Settings): List<MidiNote> {
+    override suspend fun composeMidiNotes(frequencies: List<TimeFrequency>, settings: Settings): List<MidiNote> {
         return getMidiNotes(frequencies = frequencies, settings = settings)
     }
 
-    private fun getMidiNotes(
+    private suspend fun getMidiNotes(
         frequencies: List<TimeFrequency>,
         settings: Settings,
     ): List<MidiNote> {
@@ -114,35 +117,25 @@ class MidiNotesComposerImpl(
     }
 
     // неоптимальная попытка сместить частоту всех нот, если инструмент неточно играет
-    private fun findOptimalFrequencyDeviation(
+    private suspend fun findOptimalFrequencyDeviation(
         frequencies: List<Double?>,
-        deviationRange: Double = 0.5 // измеряется в полутонах
     ): Double {
         val maxDeviationMultiplier = 2.0.pow(1.0 / 24)
+        val steps = 20
 
-        var minError = Double.MAX_VALUE
-        var optimalDeviation = 0.0
-        val steps = 10
-
-        for (i in -steps..steps) {
-            val deviation = maxDeviationMultiplier.pow(i.toDouble() / steps)
+        return (-steps..steps).parallelMap { step ->
+            val deviation = maxDeviationMultiplier.pow(step.toDouble() / steps)
             var totalError = 0.0
             for (frequency in frequencies) {
                 if (frequency == null) continue
                 val adjustedMidi = frequencyToMidi(frequency, deviation)
                 totalError += abs(adjustedMidi - adjustedMidi.roundToInt())
             }
-
-            if (totalError < minError) {
-                minError = totalError
-                optimalDeviation = deviation
-            }
-        }
-
-        return optimalDeviation
+            deviation to totalError
+        }.minByOrNull { it.second }?.first ?: 0.0
     }
 
-    private fun List<TimeFrequency>.mapToNotes(bpm: Int): List<MidiNote> {
+    private suspend fun List<TimeFrequency>.mapToNotes(bpm: Int): List<MidiNote> {
         val optimalDeviation =
             findOptimalFrequencyDeviation(frequencies = this.map { it.frequency })
         val notes = mutableListOf<MidiNote>()

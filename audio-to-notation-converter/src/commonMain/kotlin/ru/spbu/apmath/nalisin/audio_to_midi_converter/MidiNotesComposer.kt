@@ -9,17 +9,17 @@ import ru.spbu.apmath.nalisin.common_entities.TimeFrequency
  */
 interface MidiNotesComposer {
 
-    fun composeMidiNotes(
+    suspend fun composeMidiNotes(
         audioFilePath: String,
         settings: Settings,
     ): List<MidiNote>
 
-    fun composeMidiNotes(
+    suspend fun composeMidiNotes(
         musicFile: MusicFile,
         settings: Settings,
     ): List<MidiNote>
 
-    fun composeMidiNotes(
+    suspend fun composeMidiNotes(
         frequencies: List<TimeFrequency>,
         settings: Settings,
     ): List<MidiNote>

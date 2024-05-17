@@ -24,6 +24,7 @@ kotlin {
             implementation(project(":loudness-analyzer"))
             implementation(project(":musicxml-writer"))
             implementation(libs.kotlinInject.runtime)
+            implementation(libs.kotlinx.coroutines.core)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

@@ -62,6 +62,7 @@ class MainComponentImpl(
     voiceRecorder: VoiceRecorder,
     mainContext: CoroutineContext = Dispatchers.Main,
     private val ioContext: CoroutineContext = Dispatchers.IO,
+    private val defaultContext: CoroutineContext = Dispatchers.Default,
 ) : MainComponent, ComponentContext by componentContext {
 
     private val _converterState: MutableValue<ConverterState> = MutableValue(ConverterState.Initial)
@@ -180,7 +181,7 @@ class MainComponentImpl(
     private fun onMusicFileImported(file: MusicFile?) {
         file?.let {
             _converterState.update { ConverterState.Processing }
-            scope.launch(ioContext) {
+            scope.launch(defaultContext) {
                 val midiNotes = midiNotesComposer.composeMidiNotes(
                     musicFile = file,
                     settings = converterSettings.value.state.value.settings,
