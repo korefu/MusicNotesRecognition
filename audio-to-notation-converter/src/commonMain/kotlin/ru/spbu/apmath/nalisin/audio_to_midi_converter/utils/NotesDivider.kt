@@ -8,15 +8,18 @@ import ru.spbu.apmath.nalisin.common_entities.TimeSignature
  */
 object NotesDivider {
 
-    fun List<MidiNote>.divideNotes(bpm: Int, timeSignature: TimeSignature): List<MidiNote> {
-        val noteDurationThreshold = 0.06
+    fun List<MidiNote>.divideNotes(
+        bpm: Int,
+        timeSignature: TimeSignature,
+        minNoteDuration: Double = 0.0625,
+    ): List<MidiNote> {
         val notes = this
         val barDuration = calculateBarDuration(timeSignature = timeSignature)
         var durationUntilTheEnd = barDuration
         return notes.flatMap { note ->
-            if (note.duration <= durationUntilTheEnd + noteDurationThreshold) {
+            if (note.duration <= durationUntilTheEnd + minNoteDuration) {
                 durationUntilTheEnd -= note.duration
-                if (durationUntilTheEnd < noteDurationThreshold) durationUntilTheEnd = barDuration
+                if (durationUntilTheEnd < minNoteDuration) durationUntilTheEnd = barDuration
                 listOf(note)
             } else {
                 val dividedDurations = mutableListOf<Double>()
@@ -31,8 +34,8 @@ object NotesDivider {
                         remainedNoteDuration -= durationUntilTheEnd
                         durationUntilTheEnd = barDuration
                     }
-                    if (durationUntilTheEnd < noteDurationThreshold) durationUntilTheEnd = barDuration
-                } while (remainedNoteDuration > noteDurationThreshold)
+                    if (durationUntilTheEnd < minNoteDuration) durationUntilTheEnd = barDuration
+                } while (remainedNoteDuration > minNoteDuration)
                 dividedDurations.map { noteDuration ->
                     when (note) {
                         is MidiNote.Melodic -> MidiNote.Melodic(value = note.value, duration = noteDuration)
