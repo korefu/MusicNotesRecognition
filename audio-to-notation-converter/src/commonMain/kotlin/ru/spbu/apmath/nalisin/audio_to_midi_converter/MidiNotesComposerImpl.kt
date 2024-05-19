@@ -90,8 +90,13 @@ class MidiNotesComposerImpl(
         val resultNotes = notes
             .applyMedianFilter(windowSize = settings.medianFilterWindowSize)
             .mergeNotes(bpm = settings.bpm)
-            .postProcessNotes(minDurationThreshold = settings.minDurationThreshold) // todo должен быть пропорционален окну, сильно влияет на точность
+            .dropFirstPause()
+            .postProcessNotes(minNoteDurationThreshold = settings.minDurationThreshold) // todo должен быть пропорционален окну, сильно влияет на точность
         return resultNotes
+    }
+
+    private fun List<MidiNote>.dropFirstPause(): List<MidiNote> {
+        return if (this.firstOrNull() is MidiNote.Rest) this.drop(1) else this
     }
 
     // todo если уточнять тональность и убирать неиспользуемые в тональности ноты, то точность бы повысилась
@@ -156,6 +161,6 @@ class MidiNotesComposerImpl(
 
     private companion object {
         private const val QUARTER_TONE_DURATION = 0.25
-        private const val LOUDNESS_THRESHOLD = -35.0
+        private const val LOUDNESS_THRESHOLD = -40.0
     }
 }

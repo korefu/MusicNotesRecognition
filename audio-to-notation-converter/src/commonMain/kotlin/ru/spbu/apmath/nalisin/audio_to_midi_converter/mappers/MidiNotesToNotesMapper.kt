@@ -13,7 +13,7 @@ import kotlin.math.roundToInt
 object MidiNotesToNotesMapper {
 
     fun List<MidiNote>.toNotes(bpm: Int, timeSignature: TimeSignature): List<Note> {
-        val notes = this.dropFirstPause()
+        val notes = this
             .adjustNoteDuration()
             .divideNotes(bpm = bpm, timeSignature = timeSignature)
         println(this)
@@ -40,10 +40,6 @@ object MidiNotesToNotesMapper {
                 is MidiNote.Rest -> Note.Rest(duration = duration)
             }
         }.filterNotNull()
-    }
-
-    private fun List<MidiNote>.dropFirstPause(): List<MidiNote> {
-        return if (this.firstOrNull() is MidiNote.Rest) this.drop(1) else this
     }
 
     private fun List<MidiNote>.adjustNoteDuration(deviation: Double = 0.0): List<MidiNote> {
