@@ -6,7 +6,7 @@ import com.example.musicxml_writer.MusicXmlCreatorImpl
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.KmpComponentCreate
 import me.tatarka.inject.annotations.Provides
-import ru.spbu.apmath.nalisin.app.FFTFrequencyRecognizer
+import ru.spbu.apmath.nalisin.app.TarsosFrequencyRecognizer
 import ru.spbu.apmath.nalisin.app.components.main.MainComponent
 import ru.spbu.apmath.nalisin.app.components.main.MainComponentImpl
 import ru.spbu.apmath.nalisin.app.components.main.recorder.VoiceRecorder
@@ -52,7 +52,7 @@ abstract class MainDiComponent(@get:Provides protected val componentContext: Com
     protected val AudioSplitterImpl.bind: AudioSplitter
         @Provides get() = this
 
-    protected val FFTFrequencyRecognizer.bind: FrequencyRecognizer
+    protected val TarsosFrequencyRecognizer.bind: FrequencyRecognizer
         @Provides get() = this
 
     protected val VoiceRecorderImpl.bind: VoiceRecorder

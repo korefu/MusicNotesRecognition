@@ -2,6 +2,7 @@ package ru.spbu.apmath.nalisin.app
 
 import be.tarsos.dsp.AudioDispatcher
 import be.tarsos.dsp.AudioEvent
+import be.tarsos.dsp.filters.LowPassFS
 import be.tarsos.dsp.io.UniversalAudioInputStream
 import be.tarsos.dsp.pitch.PitchDetectionResult
 import be.tarsos.dsp.pitch.PitchProcessor
@@ -14,7 +15,7 @@ import java.io.ByteArrayInputStream
 import java.io.File
 
 @Inject
-class FFTFrequencyRecognizer(
+class TarsosFrequencyRecognizer(
     private val getAudioFormatUseCase: GetAudioFormatUseCase,
 ) : FrequencyRecognizer {
 
@@ -39,7 +40,7 @@ class FFTFrequencyRecognizer(
 
             var detectedFrequency: Double? = null
             val pitchProcessor = PitchProcessor(
-                PitchProcessor.PitchEstimationAlgorithm.FFT_YIN,
+                PitchProcessor.PitchEstimationAlgorithm.MPM,
                 dispatcher.format.sampleRate,
                 BUFFER_SIZE
             ) { result: PitchDetectionResult, _: AudioEvent ->
@@ -48,6 +49,8 @@ class FFTFrequencyRecognizer(
                     detectedFrequency = pitchInHz
                 }
             }
+            val lowPassFS = LowPassFS(HIGHEST_FREQUENCY, dispatcher.format.sampleRate)
+            dispatcher.addAudioProcessor(lowPassFS)
             dispatcher.addAudioProcessor(pitchProcessor)
             dispatcher.run()
             return detectedFrequency
@@ -58,6 +61,7 @@ class FFTFrequencyRecognizer(
     }
 
     private companion object {
+        const val HIGHEST_FREQUENCY = 4186.0f
         const val BUFFER_SIZE = 2048
         const val OVERLAP = 0
     }
