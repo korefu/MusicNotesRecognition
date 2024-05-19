@@ -1,7 +1,8 @@
 package ru.spbu.apmath.nalisin.audio_to_midi_converter.utils
 
 import ru.spbu.apmath.nalisin.common_entities.MidiNote
-import kotlin.math.abs
+import ru.spbu.apmath.nalisin.common_entities.MidiNote.Melodic
+import ru.spbu.apmath.nalisin.common_entities.MidiNote.Rest
 
 object NotesSmoother {
 
@@ -18,16 +19,16 @@ object NotesSmoother {
         // Проходимся по всем нотам списка
         this.forEachIndexed { index, currentNote ->
             when (currentNote) {
-                is MidiNote.Melodic -> {
+                is Melodic -> {
                     val start = maxOf(0, index - interval)
                     val end = minOf(this.size - 1, index + interval)
-                    val notesFrequency = mutableMapOf<MidiNote.Melodic, Int>()
+                    val notesFrequency = mutableMapOf<Melodic, Int>()
 
                     // Считаем частоты нот без учета тишины
                     for (j in start..end) {
                         val currentNote = this[j]
                         // Проверяем, не является ли текущая нота тишиной
-                        if (currentNote is MidiNote.Melodic) {
+                        if (currentNote is Melodic) {
                             notesFrequency[currentNote] = (notesFrequency[currentNote] ?: 0) + 1
                         }
                     }
@@ -38,14 +39,14 @@ object NotesSmoother {
 
                     // Добавление ноты в результирующий список с сохранением длительности
                     approximatedNotes.add(
-                        MidiNote.Melodic(
+                        Melodic(
                             mostFrequentNote.value,
                             currentNote.duration,
                         )
                     )
                 }
 
-                is MidiNote.Rest -> {
+                is Rest -> {
                     approximatedNotes.add(currentNote)
                 }
             }
@@ -67,16 +68,16 @@ object NotesSmoother {
             noteCounter++
 
             if (noteCounter == intervalLength) {
-                val mostFrequentNote = currentIntervalNotes.filterIsInstance<MidiNote.Melodic>()
+                val mostFrequentNote = currentIntervalNotes.filterIsInstance<Melodic>()
                     .groupingBy { it.value }
                     .eachCount()
                     .maxByOrNull { it.value }?.key
 
                 mostFrequentNote?.let {
-                    mergedNotes.add(MidiNote.Melodic(it, currentIntervalDuration))
+                    mergedNotes.add(Melodic(it, currentIntervalDuration))
                 } ?: run {
                     // Если в интервале нет ни одной звучащей ноты, добавляем паузу
-                    mergedNotes.add(MidiNote.Rest(currentIntervalDuration))
+                    mergedNotes.add(Rest(currentIntervalDuration))
                 }
 
                 // Сброс счетчика нот и длительности для следующего интервала
@@ -95,78 +96,84 @@ object NotesSmoother {
     }
 
     // присоединять слишком корооткие ноты к соседним с идеей того, что это нежелательное отклонение
-    fun List<MidiNote>.postProcessNotes(minDurationThreshold: Double): List<MidiNote> {
-        val notes = this
+    fun List<MidiNote>.postProcessNotes(
+        minNoteDurationThreshold: Double,
+        minRestDurationThreshold: Double = minNoteDurationThreshold,
+    ): List<MidiNote> {
+        val notes = this.toMutableList()
         println(notes)
-        val processedNotes = mutableListOf<MidiNote>()
 
         var index = 0
         while (index < notes.size) {
             val currentNote = notes[index]
-            if (currentNote.duration >= minDurationThreshold) {
-                processedNotes.add(currentNote)
-                index++
-            } else {
-                if (currentNote !is MidiNote.Melodic) {
-                    processedNotes.add(currentNote)
+            val previousNote = notes.getOrNull(index - 1)
+            val nextNote = notes.getOrNull(index + 1)
+
+            when {
+                (currentNote is Melodic && currentNote.duration >= minNoteDurationThreshold)
+                        || (currentNote is Rest && currentNote.duration >= minRestDurationThreshold) -> {
                     index++
-                } else {
-                    val previousNote = processedNotes.lastOrNull()
-                    val nextNote = if (index < notes.size - 1) notes[index + 1] else null
+                }
+
+                nextNote == null && previousNote != null -> {
+                    notes[index - 1] = previousNote.copy(duration = previousNote.duration + currentNote.duration)
+                    notes.removeAt(index)
+                }
+
+                nextNote != null && previousNote == null -> {
+                    notes[index + 1] = nextNote.copy(duration = nextNote.duration + currentNote.duration)
+                    notes.removeAt(index)
+                }
+
+                nextNote == null && previousNote == null -> {
+                    index++
+                }
+
+                nextNote != null && previousNote != null -> {
+                    val pitchDifference = if (nextNote is Melodic && previousNote is Melodic) {
+                        nextNote.value - previousNote.value
+                    } else if (nextNote is Rest && previousNote is Rest) 0 else null
+                    val durationDifference = nextNote.duration - previousNote.duration
                     when {
-                        nextNote is MidiNote.Melodic && previousNote !is MidiNote.Melodic -> {
-                            processedNotes.add(
-                                MidiNote.Melodic(
-                                    value = nextNote.value,
-                                    duration = currentNote.duration + nextNote.duration
-                                )
-                            )
-                            index += 2
+                        pitchDifference == 0 -> {
+                            notes[index - 1] =
+                                previousNote.copy(duration = previousNote.duration + currentNote.duration + nextNote.duration)
+                            notes.removeAt(index)
+                            notes.removeAt(index)
                         }
 
-                        nextNote !is MidiNote.Melodic && previousNote is MidiNote.Melodic -> {
-                            processedNotes[processedNotes.size - 1] = MidiNote.Melodic(
-                                value = previousNote.value,
-                                duration = currentNote.duration + previousNote.duration
-                            )
-                            index++
+                        durationDifference > currentNote.duration * 2 -> {
+                            notes[index - 1] =
+                                previousNote.copy(duration = previousNote.duration + currentNote.duration)
+                            notes.removeAt(index)
                         }
 
-                        nextNote is MidiNote.Melodic && previousNote is MidiNote.Melodic -> {
-                            val noteDifference =
-                                (abs(nextNote.value - currentNote.value) -
-                                        abs(previousNote.value - currentNote.value)).toDouble().takeIf { it != 0.0 }
-                                    ?: (previousNote.duration - nextNote.duration)
-                            when {
-                                noteDifference >= 0 -> {
-                                    processedNotes[processedNotes.size - 1] = MidiNote.Melodic(
-                                        value = previousNote.value,
-                                        duration = currentNote.duration + previousNote.duration
-                                    )
-                                    index++
-                                }
-                                else -> {
-                                    processedNotes.add(
-                                        MidiNote.Melodic(
-                                            value = nextNote.value,
-                                            duration = currentNote.duration + nextNote.duration
-                                        )
-                                    )
-                                    index += 2
-                                }
-                            }
+                        durationDifference < -(currentNote.duration * 2) -> {
+                            notes[index + 1] = nextNote.copy(duration = nextNote.duration + currentNote.duration)
+                            notes.removeAt(index)
                         }
 
                         else -> {
-                            processedNotes.add(currentNote)
-                            index++
+                            val dividedDuration = (previousNote.duration + currentNote.duration + nextNote.duration) / 2
+                            notes[index - 1] = previousNote.copy(duration = dividedDuration)
+                            notes[index + 1] = nextNote.copy(duration = dividedDuration)
+                            notes.removeAt(index)
                         }
                     }
+
+                    val newCurrent = notes.getOrNull(index)
+                    val newNext = notes.getOrNull(index + 1)
+                    if (newCurrent is Melodic && newNext is Melodic && newCurrent.value == newNext.value) {
+                        notes[index] = newCurrent.copy(duration = newCurrent.duration + newNext.duration)
+                        notes.removeAt(index + 1)
+                    }
+                }
+
+                else -> {
+                    index++
                 }
             }
         }
-
-        // Возвращаем список обработанных нот
-        return processedNotes
+        return notes
     }
 }
